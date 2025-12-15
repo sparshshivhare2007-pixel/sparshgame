@@ -1,40 +1,55 @@
-# Copyright (c) 2025 Telegram:- @WTF_Phantom <DevixOP>
-# Location: Supaul, Bihar
-#
-# All rights reserved.
+# commands/chat.py
+# AI Chat System – FINAL VERSION
 
-import httpx
 import random
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+import httpx
+from telegram import (
+    Update,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 from telegram.ext import ContextTypes
-from telegram.constants import ParseMode, ChatAction, ChatType
+from telegram.constants import (
+    ParseMode,
+    ChatAction,
+    ChatType
+)
 
-# ✅ IMPORTS FIXED FOR YOUR REPO STRUCTURE
+# -------------------- IMPORTS --------------------
 from helpers.config import (
+    BOT_NAME,
+    OWNER_LINK,
     MISTRAL_API_KEY,
     GROQ_API_KEY,
-    CODESTRAL_API_KEY,
-    BOT_NAME,
-    OWNER_LINK
+    CODESTRAL_API_KEY
 )
-from database.mongo import chatbot_collection
+
 from helpers.utils import stylize_text
+from database.mongo import chatbot_collection
 
 
-# ------------------ BASIC CONFIG ------------------
+# -------------------- BASIC CONFIG --------------------
 
 BAKA_NAME = BOT_NAME or "Baka"
-
-EMOJI_POOL = [
-    "✨", "💖", "🌸", "😊", "🥰", "💕", "🎀", "🌺",
-    "💫", "🦋", "🌼", "💗", "🍓", "😌", "🌟"
-]
 
 MAX_HISTORY = 8
 DEFAULT_MODEL = "mistral"
 
+EMOJI_POOL = [
+    "✨", "💖", "🌸", "😊", "🥰",
+    "💕", "🎀", "🌺", "💫", "🦋"
+]
 
-# ------------------ AI MODELS ------------------
+FALLBACK_RESPONSES = [
+    "Hmm… achha 😊",
+    "Samjha ✨",
+    "Okk 💖",
+    "Interesting 🌸",
+    "Aur batao 🦋"
+]
+
+
+# -------------------- AI MODELS --------------------
 
 MODELS = {
     "groq": {
@@ -54,16 +69,8 @@ MODELS = {
     }
 }
 
-FALLBACK_RESPONSES = [
-    "Achha ji? 😊",
-    "Hmm… aur batao?",
-    "Okk okk ✨",
-    "Sahi hai 💖",
-    "Interesting 🌸"
-]
 
-
-# ------------------ AI API CALL ------------------
+# -------------------- API CALL --------------------
 
 async def call_model_api(provider, messages, max_tokens):
     conf = MODELS.get(provider)
@@ -84,41 +91,41 @@ async def call_model_api(provider, messages, max_tokens):
 
     try:
         async with httpx.AsyncClient(timeout=25) as client:
-            r = await client.post(conf["url"], headers=headers, json=payload)
-            if r.status_code == 200:
-                return r.json()["choices"][0]["message"]["content"]
+            res = await client.post(conf["url"], headers=headers, json=payload)
+            if res.status_code == 200:
+                return res.json()["choices"][0]["message"]["content"]
     except Exception as e:
         print(f"[AI ERROR] {provider}: {e}")
 
     return None
 
 
-# ------------------ MAIN AI LOGIC ------------------
+# -------------------- AI CORE --------------------
 
-async def get_ai_response(chat_id: int, text: str, model=DEFAULT_MODEL):
+async def get_ai_response(chat_id: int, text: str):
     code_keywords = [
-        "code", "python", "html", "css", "js", "error",
-        "debug", "function", "import", "class"
+        "code", "python", "html", "css", "js",
+        "error", "debug", "class", "import", "function"
     ]
 
     is_code = any(k in text.lower() for k in code_keywords)
 
     if is_code:
-        active_model = "codestral"
+        model = "codestral"
         max_tokens = 4000
         system_prompt = (
             "You are a professional coding assistant. "
             "Give clean, working code with short explanation."
         )
     else:
-        active_model = model
+        model = DEFAULT_MODEL
         max_tokens = 200
         emoji = random.choice(EMOJI_POOL)
         system_prompt = (
             f"You are {BAKA_NAME}, a sweet Indian girlfriend. "
-            "Speak natural Hinglish. No roleplay actions. "
-            f"Use only 1 emoji like {emoji}. "
-            "Never say you are an AI."
+            "Reply in natural Hinglish. "
+            "Use only one emoji like "
+            f"{emoji}. Never say you are an AI."
         )
 
     doc = chatbot_collection.find_one({"chat_id": chat_id}) or {}
@@ -128,7 +135,7 @@ async def get_ai_response(chat_id: int, text: str, model=DEFAULT_MODEL):
     messages += history[-MAX_HISTORY:]
     messages.append({"role": "user", "content": text})
 
-    reply = await call_model_api(active_model, messages, max_tokens)
+    reply = await call_model_api(model, messages, max_tokens)
 
     if not reply:
         reply = await call_model_api("mistral", messages, max_tokens)
@@ -152,7 +159,7 @@ async def get_ai_response(chat_id: int, text: str, model=DEFAULT_MODEL):
     return reply, is_code
 
 
-# ------------------ MESSAGE HANDLER ------------------
+# -------------------- MESSAGE HANDLER --------------------
 
 async def ai_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
@@ -168,15 +175,15 @@ async def ai_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await context.bot.send_chat_action(chat.id, ChatAction.TYPING)
 
-    response, is_code = await get_ai_response(chat.id, msg.text)
+    reply, is_code = await get_ai_response(chat.id, msg.text)
 
     if is_code:
-        await msg.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+        await msg.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
     else:
-        await msg.reply_text(stylize_text(response))
+        await msg.reply_text(stylize_text(reply))
 
 
-# ------------------ /chatbot SETTINGS ------------------
+# -------------------- /chatbot MENU --------------------
 
 async def chatbot_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb = InlineKeyboardMarkup([
@@ -184,8 +191,8 @@ async def chatbot_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🦙 Groq", callback_data="ai_groq"),
             InlineKeyboardButton("🌟 Mistral", callback_data="ai_mistral")
         ],
-        [InlineKeyboardButton("🖥️ Codestral", callback_data="ai_codestral")],
-        [InlineKeyboardButton("🗑️ Clear Memory", callback_data="ai_reset")]
+        [InlineKeyboardButton("🖥 Codestral", callback_data="ai_codestral")],
+        [InlineKeyboardButton("🗑 Clear Memory", callback_data="ai_reset")]
     ])
 
     await update.message.reply_text(
@@ -206,8 +213,7 @@ async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             {"$set": {"history": []}},
             upsert=True
         )
-        await q.answer("Memory cleared 🧠", show_alert=True)
-        return
+        return await q.answer("Memory cleared 🧠", show_alert=True)
 
     model_map = {
         "ai_groq": "groq",
@@ -224,7 +230,7 @@ async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.answer("Model switched ✅", show_alert=True)
 
 
-# ------------------ /ask COMMAND ------------------
+# -------------------- /ask COMMAND --------------------
 
 async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -235,9 +241,14 @@ async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = " ".join(context.args)
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
 
-    response, is_code = await get_ai_response(update.effective_chat.id, query)
+    reply, is_code = await get_ai_response(update.effective_chat.id, query)
 
     if is_code:
-        await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
     else:
-        await update.message.reply_text(stylize_text(response))
+        await update.message.reply_text(stylize_text(reply))
+
+
+# -------------------- MAIN.PY COMPAT --------------------
+# main.py expects `chat_handler`
+chat_handler = ai_message_handler
