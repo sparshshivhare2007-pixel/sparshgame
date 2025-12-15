@@ -1,53 +1,34 @@
 {
-  "name": "Destiny Bot",
-  "description": "Destiny Bot for Sale and Games (Based on user request).",
-  "logo": "https://telegra.ph/file/5e5480760e412bd402e88.jpg",
+  "name": "sparshgame-telegram-bot",
+  "description": "Telegram bot built with python-telegram-bot, MongoDB and OpenAI",
+  "repository": "https://github.com/sparshshivhare2007-pixel/sparshgame",
   "keywords": [
     "telegram",
     "bot",
     "python",
+    "python-telegram-bot",
     "mongodb",
-    "game",
-    "ai"
+    "openai"
   ],
-  "repository": "https://github.com/sparshshivhare2007-pixel/sparshgame",
   "env": {
     "BOT_TOKEN": {
-      "description": "आपका टेलीग्राम बॉट टोकन (BotFather से प्राप्त करें)",
+      "description": "Telegram Bot Token from @BotFather",
       "required": true
     },
     "MONGO_URI": {
-      "description": "MongoDB कनेक्शन स्ट्रिंग (URI), जैसे: mongodb+srv://...",
-      "required": true
-    },
-    "OWNER_ID": {
-      "description": "आपका टेलीग्राम यूजर ID (एडमिन एक्सेस के लिए)",
+      "description": "MongoDB connection string",
       "required": true
     },
     "OPENAI_API_KEY": {
-      "description": "OpenAI या अन्य AI सेवाओं के लिए API Key (यदि आप AI फीचर्स का उपयोग कर रहे हैं)",
+      "description": "OpenAI API key",
       "required": false
-    },
-    "LOGGER_ID": {
-      "description": "लॉग चैनल का ID (ऑप्शनल, बॉट की गतिविधियों को लॉग करने के लिए)",
-      "required": false
-    },
-    "UPSTREAM_REPO": {
-      "description": "गिट रिपॉजिटरी URL (ऑप्शनल, ऑटो-अपडेट के लिए)",
-      "required": false
-    },
-    "GIT_PYTHON_REFRESH": {
-      "value": "quiet",
-      "required": true
     }
   },
-  "buildpacks": [
-    {
-      "url": "https://github.com/heroku/heroku-buildpack-apt"
-    },
-    {
-      "url": "heroku/python"
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
     }
-  ],
-  "stack": "container"
+  },
+  "stack": "heroku-22"
 }
