@@ -1,80 +1,243 @@
-import os
-from openai import OpenAI
-from telegram import Update
+# Copyright (c) 2025 Telegram:- @WTF_Phantom <DevixOP>
+# Location: Supaul, Bihar
+#
+# All rights reserved.
+
+import httpx
+import random
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
+from telegram.constants import ParseMode, ChatAction, ChatType
 
-from database.chat_history import save_message, get_last_messages
+# ✅ IMPORTS FIXED FOR YOUR REPO STRUCTURE
+from helpers.config import (
+    MISTRAL_API_KEY,
+    GROQ_API_KEY,
+    CODESTRAL_API_KEY,
+    BOT_NAME,
+    OWNER_LINK
+)
+from database.mongo import chatbot_collection
+from helpers.utils import stylize_text
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ------------------ BASIC CONFIG ------------------
+
+BAKA_NAME = BOT_NAME or "Baka"
+
+EMOJI_POOL = [
+    "✨", "💖", "🌸", "😊", "🥰", "💕", "🎀", "🌺",
+    "💫", "🦋", "🌼", "💗", "🍓", "😌", "🌟"
+]
+
+MAX_HISTORY = 8
+DEFAULT_MODEL = "mistral"
 
 
-async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
-    text = update.message.text
-    bot = await context.bot.get_me()
-    bot_username = bot.username.lower()
+# ------------------ AI MODELS ------------------
 
-    # =======================
-    # GROUP CHAT LOGIC
-    # =======================
-    if chat.type in ["group", "supergroup"]:
+MODELS = {
+    "groq": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "model": "llama3-70b-8192",
+        "key": GROQ_API_KEY
+    },
+    "mistral": {
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "model": "mistral-large-latest",
+        "key": MISTRAL_API_KEY
+    },
+    "codestral": {
+        "url": "https://codestral.mistral.ai/v1/chat/completions",
+        "model": "codestral-latest",
+        "key": CODESTRAL_API_KEY
+    }
+}
 
-        # 1 — Bot ko tag kiya ho
-        if f"@{bot_username}" in text.lower():
-            text = text.replace(f"@{bot_username}", "").strip()
+FALLBACK_RESPONSES = [
+    "Achha ji? 😊",
+    "Hmm… aur batao?",
+    "Okk okk ✨",
+    "Sahi hai 💖",
+    "Interesting 🌸"
+]
 
-        # 2 — Bot ke reply me conversation continue ho
-        elif update.message.reply_to_message:
-            if update.message.reply_to_message.from_user.id != context.bot.id:
-                return  # kisi aur ko reply kiya, ignore
 
-        # 3 — /chat command use ho
-        elif text.startswith("/chat"):
-            text = text.replace("/chat", "").strip()
+# ------------------ AI API CALL ------------------
 
-        else:
-            return  # random msg par bot reply nahi karega
+async def call_model_api(provider, messages, max_tokens):
+    conf = MODELS.get(provider)
+    if not conf or not conf["key"]:
+        return None
 
-    # =======================
-    # PRIVATE CHAT
-    # =======================
-    elif chat.type == "private":
-        pass  # private me bot always reply karega
+    headers = {
+        "Authorization": f"Bearer {conf['key']}",
+        "Content-Type": "application/json"
+    }
 
-    # =======================
-    # SAVE USER MESSAGE
-    # =======================
-    save_message(user.id, "user", text)
+    payload = {
+        "model": conf["model"],
+        "messages": messages,
+        "temperature": 0.8,
+        "max_tokens": max_tokens
+    }
 
-    history = get_last_messages(user.id)
-
-    # =======================
-    # AI RESPONSE
-    # =======================
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a cute, sweet AI girlfriend. "
-                        "Hindi + English mix me short, natural reply do. "
-                        "Groups me respectful behaviour rakho."
-                    )
-                },
-                *history
-            ]
+        async with httpx.AsyncClient(timeout=25) as client:
+            r = await client.post(conf["url"], headers=headers, json=payload)
+            if r.status_code == 200:
+                return r.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"[AI ERROR] {provider}: {e}")
+
+    return None
+
+
+# ------------------ MAIN AI LOGIC ------------------
+
+async def get_ai_response(chat_id: int, text: str, model=DEFAULT_MODEL):
+    code_keywords = [
+        "code", "python", "html", "css", "js", "error",
+        "debug", "function", "import", "class"
+    ]
+
+    is_code = any(k in text.lower() for k in code_keywords)
+
+    if is_code:
+        active_model = "codestral"
+        max_tokens = 4000
+        system_prompt = (
+            "You are a professional coding assistant. "
+            "Give clean, working code with short explanation."
+        )
+    else:
+        active_model = model
+        max_tokens = 200
+        emoji = random.choice(EMOJI_POOL)
+        system_prompt = (
+            f"You are {BAKA_NAME}, a sweet Indian girlfriend. "
+            "Speak natural Hinglish. No roleplay actions. "
+            f"Use only 1 emoji like {emoji}. "
+            "Never say you are an AI."
         )
 
-        # ⭐ FIXED — NEW OPENAI SDK
-        reply = response.choices[0].message.content
+    doc = chatbot_collection.find_one({"chat_id": chat_id}) or {}
+    history = doc.get("history", [])
 
-    except Exception as e:
-        reply = f"⚠️ Error: {e}"
+    messages = [{"role": "system", "content": system_prompt}]
+    messages += history[-MAX_HISTORY:]
+    messages.append({"role": "user", "content": text})
 
-    # Save bot reply
-    save_message(user.id, "assistant", reply)
+    reply = await call_model_api(active_model, messages, max_tokens)
 
-    await update.message.reply_text(reply)
+    if not reply:
+        reply = await call_model_api("mistral", messages, max_tokens)
+
+    if not reply:
+        reply = random.choice(FALLBACK_RESPONSES)
+
+    reply = reply.replace("*", "").strip()
+
+    new_history = history + [
+        {"role": "user", "content": text},
+        {"role": "assistant", "content": reply}
+    ]
+
+    chatbot_collection.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"history": new_history[-(MAX_HISTORY * 2):]}},
+        upsert=True
+    )
+
+    return reply, is_code
+
+
+# ------------------ MESSAGE HANDLER ------------------
+
+async def ai_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    if not msg or not msg.text or msg.text.startswith("/"):
+        return
+
+    chat = update.effective_chat
+
+    if chat.type != ChatType.PRIVATE:
+        doc = chatbot_collection.find_one({"chat_id": chat.id}) or {}
+        if not doc.get("enabled", True):
+            return
+
+    await context.bot.send_chat_action(chat.id, ChatAction.TYPING)
+
+    response, is_code = await get_ai_response(chat.id, msg.text)
+
+    if is_code:
+        await msg.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await msg.reply_text(stylize_text(response))
+
+
+# ------------------ /chatbot SETTINGS ------------------
+
+async def chatbot_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🦙 Groq", callback_data="ai_groq"),
+            InlineKeyboardButton("🌟 Mistral", callback_data="ai_mistral")
+        ],
+        [InlineKeyboardButton("🖥️ Codestral", callback_data="ai_codestral")],
+        [InlineKeyboardButton("🗑️ Clear Memory", callback_data="ai_reset")]
+    ])
+
+    await update.message.reply_text(
+        "🤖 <b>Baka AI Settings</b>",
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb
+    )
+
+
+async def chatbot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    q = update.callback_query
+    data = q.data
+    chat_id = q.message.chat.id
+
+    if data == "ai_reset":
+        chatbot_collection.update_one(
+            {"chat_id": chat_id},
+            {"$set": {"history": []}},
+            upsert=True
+        )
+        await q.answer("Memory cleared 🧠", show_alert=True)
+        return
+
+    model_map = {
+        "ai_groq": "groq",
+        "ai_mistral": "mistral",
+        "ai_codestral": "codestral"
+    }
+
+    if data in model_map:
+        chatbot_collection.update_one(
+            {"chat_id": chat_id},
+            {"$set": {"model": model_map[data]}},
+            upsert=True
+        )
+        await q.answer("Model switched ✅", show_alert=True)
+
+
+# ------------------ /ask COMMAND ------------------
+
+async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        return await update.message.reply_text(
+            "Usage: /ask <question>"
+        )
+
+    query = " ".join(context.args)
+    await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+
+    response, is_code = await get_ai_response(update.effective_chat.id, query)
+
+    if is_code:
+        await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await update.message.reply_text(stylize_text(response))
