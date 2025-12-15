@@ -6,8 +6,7 @@ from dotenv import load_dotenv
 # -------------------- LOAD ENV --------------------
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
-db = client["economy_bot"]
+from database.mongo import users, groups
 
 # -------------------- COLLECTIONS --------------------
 users = db["users"]
