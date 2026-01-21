@@ -1,23 +1,18 @@
-# helpers/__init__.py
-
-# -------------------- IMPORTS FROM DATABASE --------------------
 from database.users import (
     get_user,
     users,
     user_db,
+    users_db,
+    add_message_count,
     add_group_id,
     is_group_open,
-    set_group_open   # ✅ correct name
+    set_group_open
 )
 
-# backward compatibility
 set_group_status = set_group_open
 
-
-# -------------------- OPENAI GPT HELPER --------------------
 import os
 import openai
-
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 async def ask_gpt(prompt: str, model: str = "gpt-3.5-turbo"):
