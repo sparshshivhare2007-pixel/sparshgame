@@ -13,9 +13,8 @@ users = db["users"]
 groups_db = db["groups"]
 
 # ---------------- ALIASES (Compatibility ke liye) ----------------
-# main.py aur give.py in names ko dhoond rahe hain
-user_db = users  
-users_db = users 
+user_db = users   # main.py ke liye
+users_db = users  # give.py ke liye
 
 # ---------------- USER FUNCTIONS ----------------
 def get_user(user_id: int):
