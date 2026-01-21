@@ -12,11 +12,11 @@ db = client["economy_bot"]
 users = db["users"]
 groups_db = db["groups"]
 
-# ---------------- ALIASES (Sabhi files ke liye) ----------------
+# ---------------- ALIASES ----------------
 user_db = users   # main.py ke liye
 users_db = users  # give.py ke liye
 
-# ---------------- FUNCTIONS ----------------
+# ---------------- USER FUNCTIONS ----------------
 def get_user(user_id: int):
     user = users.find_one({"user_id": user_id})
     if not user:
@@ -24,9 +24,15 @@ def get_user(user_id: int):
         users.insert_one(user)
     return user
 
+def is_protected(user_id: int) -> bool:
+    """Fixes ImportError in rob.py"""
+    user = users.find_one({"user_id": user_id})
+    return user.get("protected", False) if user else False
+
 def add_message_count(user_id: int):
     users.update_one({"user_id": user_id}, {"$inc": {"messages": 1}}, upsert=True)
 
+# ---------------- GROUP FUNCTIONS ----------------
 def add_group_id(group_id: int):
     groups_db.update_one({"group_id": group_id}, {"$set": {"group_id": group_id, "open": True}}, upsert=True)
 
