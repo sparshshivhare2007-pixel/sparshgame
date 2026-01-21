@@ -1,60 +1,33 @@
-# database/__init__.py
-from pymongo import MongoClient
+# helpers/__init__.py
+
+# -------------------- IMPORTS FROM DATABASE --------------------
+from database.users import (
+    get_user,
+    users,
+    user_db,
+    add_group_id,
+    is_group_open,
+    set_group_open   # ✅ correct name
+)
+
+# backward compatibility
+set_group_status = set_group_open
+
+
+# -------------------- OPENAI GPT HELPER --------------------
 import os
-from dotenv import load_dotenv
+import openai
 
-# Load env
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Sync MongoDB client
-client = MongoClient(MONGO_URI)
-db = client["economy_bot"]
-
-# Collections
-users_db = db["users"]
-groups_db = db["groups"]
-couples_db = db["couples"]
-
-chatai = db["chatai"]
-chat_lang_db = db["ChatLangDb"]
-chatbot_status_db = db["chatbot_status_db"]
-
-runtime_users = set()
-runtime_groups = set()
-
-# -------- USERS --------
-def get_user(user_id: int):
-    user = users_db.find_one({"user_id": user_id})
-    if not user:
-        new_user = {
-            "user_id": user_id,
-            "balance": 0,
-            "bank": 0,
-            "kills": 0,
-            "killed": False,
-            "daily_cooldown": 0
-        }
-        users_db.insert_one(new_user)
-        return new_user
-    return user
-
-
-# -------- GROUPS --------
-def add_group_id(group_id: int):
-    groups_db.update_one(
-        {"group_id": group_id},
-        {"$set": {"group_id": group_id}},
-        upsert=True
-    )
-
-def is_group_open(group_id: int):
-    group = groups_db.find_one({"group_id": group_id})
-    return group.get("status") == "open" if group else False
-
-def set_group_status(group_id: int, status: str):
-    groups_db.update_one(
-        {"group_id": group_id},
-        {"$set": {"status": status}},
-        upsert=True
-    )
+async def ask_gpt(prompt: str, model: str = "gpt-3.5-turbo"):
+    try:
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ Error: {e}"
