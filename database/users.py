@@ -10,12 +10,12 @@ db = client["economy_bot"]
 
 # ---------------- COLLECTIONS ----------------
 users = db["users"]
-groups_db = db["groups"] # main.py isi name ko dhoond raha hai
+groups_db = db["groups"]
 
-# ---------------- ALIASES (Sabhi files ke liye) ----------------
+# ---------------- ALIASES ----------------
 user_db = users   # main.py ke liye
 users_db = users  # give.py ke liye
-groups = groups_db # groups.py compatibility ke liye
+groups = groups_db
 
 # ---------------- FUNCTIONS ----------------
 def get_user(user_id: int):
@@ -42,4 +42,4 @@ def is_group_open(group_id: int) -> bool:
 def set_group_open(group_id: int, status: bool):
     groups_db.update_one({"group_id": group_id}, {"$set": {"open": status}}, upsert=True)
 
-set_group_status = set_group_open # open_economy.py ke liye
+set_group_status = set_group_open # open_economy.py compatibility
