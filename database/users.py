@@ -4,42 +4,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
-db = client["economy_bot"]
+# Database Connection
+MONGO_URL = os.getenv("MONGO_URL")
+client = MongoClient(MONGO_URL)
+db = client['myra_bot_db']
 
-# ---------------- COLLECTIONS ----------------
-users = db["users"]
-groups_db = db["groups"]
+# Collections
+users_db = db['users']
+users = users_db  # Dono names support karne ke liye alias
 
-# ---------------- ALIASES ----------------
-user_db = users   # main.py ke liye
-users_db = users  # give.py ke liye
-groups = groups_db
-
-# ---------------- FUNCTIONS ----------------
-def get_user(user_id: int):
-    user = users.find_one({"user_id": user_id})
+def get_user(user_id):
+    user = users_db.find_one({"user_id": user_id})
     if not user:
-        user = {"user_id": user_id, "balance": 0, "kills": 0, "killed": False, "protected": False, "messages": 0}
-        users.insert_one(user)
+        user_data = {
+            "user_id": user_id,
+            "balance": 1000,       # Joining bonus
+            "bank": 0,
+            "user_level": 1,
+            "xp": 0,
+            "kills": 0,
+            "killed": False,
+            "items": [],
+            "protection_until": None,
+            "messages_count": 0,
+            "badge": "🟢 Rookie"
+        }
+        users_db.insert_one(user_data)
+        return user_data
     return user
-
-def is_protected(user_id: int) -> bool:
-    user = users.find_one({"user_id": user_id})
-    return user.get("protected", False) if user else False
-
-def add_message_count(user_id: int):
-    users.update_one({"user_id": user_id}, {"$inc": {"messages": 1}}, upsert=True)
-
-def add_group_id(group_id: int):
-    groups_db.update_one({"group_id": group_id}, {"$set": {"group_id": group_id, "open": True}}, upsert=True)
-
-def is_group_open(group_id: int) -> bool:
-    group = groups_db.find_one({"group_id": group_id})
-    return group.get("open", True) if group else True
-
-def set_group_open(group_id: int, status: bool):
-    groups_db.update_one({"group_id": group_id}, {"$set": {"open": status}}, upsert=True)
-
-set_group_status = set_group_open # open_economy.py compatibility
