@@ -12,7 +12,6 @@ if not MONGO_URI:
 
 client = MongoClient(MONGO_URI)
 
-# ✅ THIS WAS MISSING
 db = client["economy_bot"]
 
 # ---------------- COLLECTIONS ----------------
@@ -35,18 +34,35 @@ def get_user(user_id: int):
     return user
 
 
-def add_group_id(group_id: int):
-    groups_db.update_one(
-        {"group_id": group_id},
-        {"$set": {"group_id": group_id}},
-        upsert=True
-    )
-
-
 def add_message_count(user_id: int):
     users.update_one(
         {"user_id": user_id},
         {"$inc": {"messages": 1}},
+        upsert=True
+    )
+
+
+# ---------------- GROUP FUNCTIONS ----------------
+def add_group_id(group_id: int):
+    groups_db.update_one(
+        {"group_id": group_id},
+        {"$set": {"group_id": group_id, "open": True}},
+        upsert=True
+    )
+
+
+def is_group_open(group_id: int) -> bool:
+    group = groups_db.find_one({"group_id": group_id})
+    if not group:
+        add_group_id(group_id)
+        return True
+    return group.get("open", True)
+
+
+def set_group_open(group_id: int, status: bool):
+    groups_db.update_one(
+        {"group_id": group_id},
+        {"$set": {"open": status}},
         upsert=True
     )
 
