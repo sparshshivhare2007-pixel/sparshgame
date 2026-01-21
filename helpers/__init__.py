@@ -8,6 +8,7 @@ from database.users import (
     is_group_open,
     set_group_open
 )
+from .utils import format_delta, random_percentage
 
 set_group_status = set_group_open
 
