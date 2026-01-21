@@ -11,10 +11,12 @@ def is_group_open(group_id: int) -> bool:
     group = groups.find_one({"group_id": group_id})
     return group.get("economy_open", True) if group else True
 
-# 'set_group_status' ko rename kiya gaya hai 'set_group_open' mein
 def set_group_open(group_id: int, status: bool):
     groups.update_one(
         {"group_id": group_id},
         {"$set": {"economy_open": status}},
         upsert=True
     )
+
+# 🟢 YE LINE ADD KAREIN (Permanently fix karne ke liye)
+set_group_status = set_group_open
