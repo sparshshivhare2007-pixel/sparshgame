@@ -1,4 +1,3 @@
-# main.py
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -19,19 +18,20 @@ OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID", "0"))
 
 # -------------------- DATABASE --------------------
-from database.users import (
+# Hum database package se direct import kar rahe hain kyunki __init__.py me sab setup hai
+from database import (
     get_user,
     user_db,
+    users_db,        # give.py compatibility ke liye
     add_group_id,
     add_message_count,
-    users,
-    groups_db
+    users,           # Broadcast loop ke liye
+    groups_db        # Broadcast loop aur database reference ke liye
 )
 
 # -------------------- COMMANDS --------------------
 from commands.start_command import start_command, button_handler
 from commands.group_management import register_group_management
-
 from commands.economy_guide import economy_guide
 from commands.help_command import help_command
 from commands.transfer_balance import transfer_balance
@@ -52,11 +52,9 @@ from commands.kill import kill
 from commands.revive import revive
 from commands.open_economy import open_economy
 from commands.close_economy import close_economy
-
 from commands.punch import punch
 from commands.hug import hug
 from commands.couple import couple
-
 from commands.mine import mine
 from commands.farm import farm
 from commands.crime import crime
@@ -72,9 +70,8 @@ from commands.withdraw import withdraw
 # ✅ AI CHAT (FIXED)
 from commands.chat import ai_message_handler
 
-
 # =====================================================
-#                   BROADCAST
+#                    BROADCAST
 # =====================================================
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
@@ -86,6 +83,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = " ".join(context.args)
     sent, failed = 0, 0
 
+    # Users loop
     for u in users.find():
         try:
             await context.bot.send_message(u["user_id"], text)
@@ -94,6 +92,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             failed += 1
 
+    # Groups loop
     for g in groups_db.find():
         try:
             await context.bot.send_message(g["group_id"], text)
@@ -106,7 +105,6 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📢 Broadcast Done\n✅ {sent} | ❌ {failed}"
     )
 
-
 # -------------------- RESTART --------------------
 async def test_restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
@@ -114,12 +112,10 @@ async def test_restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔄 Restarting…")
     os._exit(1)
 
-
 # -------------------- TRACK USERS --------------------
 async def track_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     user = update.effective_user
-
     add_group_id(chat.id)
 
     if chat.type == "private":
@@ -131,12 +127,10 @@ async def track_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
 
-
 # -------------------- BALANCE --------------------
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
-
     rank_data = list(user_db.find().sort("balance", -1))
     ids = [u["user_id"] for u in rank_data]
     rank = ids.index(user_id) + 1 if user_id in ids else "?"
@@ -148,21 +142,19 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚔️ Kills: {user['kills']}"
     )
 
-
 # -------------------- WORK --------------------
 async def work(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = get_user(update.effective_user.id)
+    user_id = update.effective_user.id
+    user = get_user(user_id)
     user_db.update_one(
-        {"user_id": user["user_id"]},
+        {"user_id": user_id},
         {"$inc": {"balance": 200}}
     )
     await update.message.reply_text("💼 You earned 200 coins!")
 
-
 # -------------------- ERROR --------------------
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     print("ERROR:", context.error)
-
 
 # -------------------- AI + XP --------------------
 async def ai_group_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -180,7 +172,6 @@ async def ai_group_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if msg.reply_to_message and msg.reply_to_message.from_user.id == context.bot.id:
         return await ai_message_handler(update, context)
-
 
 # -------------------- MAIN --------------------
 def main():
@@ -221,12 +212,10 @@ def main():
         app.add_handler(CommandHandler(c, h))
 
     register_group_management(app)
-
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ai_group_filter))
 
     print("🚀 Bot Started Successfully")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
