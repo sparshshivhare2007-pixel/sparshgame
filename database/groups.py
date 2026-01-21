@@ -1,22 +1,16 @@
-from database.mongo import groups
+from database.users import db
 
-def add_group_id(group_id: int):
-    if not groups.find_one({"group_id": group_id}):
-        groups.insert_one({
-            "group_id": group_id,
-            "economy_open": True
-        })
+groups_db = db['groups']
 
-def is_group_open(group_id: int) -> bool:
-    group = groups.find_one({"group_id": group_id})
-    return group.get("economy_open", True) if group else True
+async def is_group_open(chat_id):
+    group = groups_db.find_one({"chat_id": chat_id})
+    if not group:
+        return True  # By default economy open rahegi
+    return group.get("open", True)
 
-def set_group_open(group_id: int, status: bool):
-    groups.update_one(
-        {"group_id": group_id},
-        {"$set": {"economy_open": status}},
+def set_group_status(chat_id, status: bool):
+    groups_db.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"open": status}},
         upsert=True
     )
-
-# 🟢 YE LINE ADD KAREIN (Permanently fix karne ke liye)
-set_group_status = set_group_open
