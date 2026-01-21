@@ -8,5 +8,6 @@ from .users import (
     add_message_count,
     add_group_id,
     is_group_open,
-    set_group_open
+    set_group_open,
+    set_group_status
 )
