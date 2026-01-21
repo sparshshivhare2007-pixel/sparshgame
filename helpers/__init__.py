@@ -1,4 +1,4 @@
-from database.users import (
+from database import (
     get_user,
     users,
     user_db,
@@ -11,7 +11,7 @@ from database.users import (
     set_group_status
 )
 from .utils import format_delta, random_percentage, stylize_text
-from . import config  # 🟢 Config module ko expose kiya
+from . import config 
 
 import os
 import openai
