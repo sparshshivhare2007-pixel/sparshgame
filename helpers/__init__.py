@@ -7,11 +7,10 @@ from database.users import (
     add_message_count,
     add_group_id,
     is_group_open,
-    set_group_open
+    set_group_open,
+    set_group_status
 )
 from .utils import format_delta, random_percentage, stylize_text
-
-set_group_status = set_group_open
 
 import os
 import openai
