@@ -3,12 +3,13 @@ from database.users import (
     users,
     user_db,
     users_db,
+    is_protected,
     add_message_count,
     add_group_id,
     is_group_open,
     set_group_open
 )
-from .utils import format_delta, random_percentage
+from .utils import format_delta, random_percentage, stylize_text
 
 set_group_status = set_group_open
 
