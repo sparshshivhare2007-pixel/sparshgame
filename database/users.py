@@ -3,22 +3,17 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 
 load_dotenv()
-
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
 db = client["economy_bot"]
 
-# ---------------- COLLECTIONS ----------------
+# Collections & Aliases
 users = db["users"]
 groups_db = db["groups"]
+user_db = users   
+users_db = users  
+groups = groups_db
 
-# ---------------- ALIASES (Sabhi files ke liye) ----------------
-user_db = users   # main.py ke liye
-users_db = users  # give.py ke liye
-# groups_db collection ko bhi export karein taaki main.py broadcast chale
-groups = groups_db 
-
-# ---------------- USER FUNCTIONS ----------------
 def get_user(user_id: int):
     user = users.find_one({"user_id": user_id})
     if not user:
@@ -33,11 +28,9 @@ def is_protected(user_id: int) -> bool:
 def add_message_count(user_id: int):
     users.update_one({"user_id": user_id}, {"$inc": {"messages": 1}}, upsert=True)
 
-# ---------------- GROUP FUNCTIONS ----------------
 def set_group_open(group_id: int, status: bool):
     groups_db.update_one({"group_id": group_id}, {"$set": {"open": status}}, upsert=True)
 
-# Alias for open_economy.py
 set_group_status = set_group_open 
 
 def is_group_open(group_id: int) -> bool:
