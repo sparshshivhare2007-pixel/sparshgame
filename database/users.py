@@ -11,12 +11,15 @@ if not MONGO_URI:
     raise ValueError("❌ MONGO_URI not found in environment variables")
 
 client = MongoClient(MONGO_URI)
-
 db = client["economy_bot"]
 
 # ---------------- COLLECTIONS ----------------
 users = db["users"]
 groups_db = db["groups"]
+
+# Aliases to fix ImportErrors in other files
+users_db = users  # Fixes "ImportError: cannot import name 'users_db'"
+user_db = users   # Fixes "ImportError: cannot import name 'user_db'"
 
 # ---------------- USER FUNCTIONS ----------------
 def get_user(user_id: int):
@@ -33,14 +36,12 @@ def get_user(user_id: int):
         users.insert_one(user)
     return user
 
-
 def add_message_count(user_id: int):
     users.update_one(
         {"user_id": user_id},
         {"$inc": {"messages": 1}},
         upsert=True
     )
-
 
 # ---------------- GROUP FUNCTIONS ----------------
 def add_group_id(group_id: int):
@@ -50,7 +51,6 @@ def add_group_id(group_id: int):
         upsert=True
     )
 
-
 def is_group_open(group_id: int) -> bool:
     group = groups_db.find_one({"group_id": group_id})
     if not group:
@@ -58,14 +58,9 @@ def is_group_open(group_id: int) -> bool:
         return True
     return group.get("open", True)
 
-
 def set_group_open(group_id: int, status: bool):
     groups_db.update_one(
         {"group_id": group_id},
         {"$set": {"open": status}},
         upsert=True
     )
-
-
-# alias used in main.py
-user_db = users
