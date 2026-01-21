@@ -1,13 +1,6 @@
-# helpers/utils.py
 import random
 import re
-
-def random_percentage():
-    """
-    Returns a random love/crush percentage (1–100).
-    """
-    return random.randint(1, 100)
-
+from datetime import timedelta
 
 # 🌸 SCRIPT / CALLIGRAPHIC FONT MAP
 FONT_MAP = {
@@ -16,7 +9,6 @@ FONT_MAP = {
     'M': '𝑴', 'N': '𝑵', 'O': '𝑶', 'P': '𝑷', 'Q': '𝑸', 'R': '𝑹',
     'S': '𝑺', 'T': '𝑻', 'U': '𝑼', 'V': '𝑽', 'W': '𝑾', 'X': '𝑿',
     'Y': '𝒀', 'Z': '𝒁',
-
     'a': '𝒂', 'b': '𝒃', 'c': '𝒄', 'd': '𝒅', 'e': '𝒆', 'f': '𝒇',
     'g': '𝒈', 'h': '𝒉', 'i': '𝒊', 'j': '𝒋', 'k': '𝒌', 'l': '𝒍',
     'm': '𝒎', 'n': '𝒏', 'o': '𝒐', 'p': '𝒑', 'q': '𝒒', 'r': '𝒓',
@@ -24,25 +16,32 @@ FONT_MAP = {
     'y': '𝒚', 'z': '𝒛'
 }
 
+def random_percentage():
+    """Returns a random love/crush percentage (1–100)."""
+    return random.randint(1, 100)
+
+def format_delta(delta: timedelta):
+    """Fixes ImportError in daily.py"""
+    seconds = int(delta.total_seconds())
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if hours > 0: parts.append(f"{hours}h")
+    if minutes > 0: parts.append(f"{minutes}m")
+    if seconds > 0 or not parts: parts.append(f"{seconds}s")
+    return " ".join(parts)
 
 def stylize_text(text: str) -> str:
-    """
-    Converts normal text to Script / Calligraphic font
-    Mentions, links & commands remain unchanged.
-    """
-
+    """Converts normal text to Script / Calligraphic font"""
     def apply_font(t):
         return "".join(FONT_MAP.get(ch, ch) for ch in t)
 
-    # Protect mentions, links, inline code, commands
     pattern = r"(@\w+|https?://\S+|`[^`]+`|/[a-zA-Z0-9_]+)"
     parts = re.split(pattern, str(text))
-
     styled = []
     for part in parts:
         if re.match(pattern, part):
             styled.append(part)
         else:
             styled.append(apply_font(part))
-
     return "".join(styled)
