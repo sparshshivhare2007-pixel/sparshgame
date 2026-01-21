@@ -1,4 +1,7 @@
-from database import (
+# helpers/__init__.py
+
+# 1. Database imports
+from database.users import (
     get_user,
     users,
     user_db,
@@ -10,9 +13,14 @@ from database import (
     set_group_open,
     set_group_status
 )
-from .utils import format_delta, random_percentage, stylize_text
-from . import config 
 
+# 2. Utils imports
+from .utils import format_delta, random_percentage, stylize_text
+
+# 3. Import Config inside functions or handle properly to avoid circular import
+import helpers.utils as utils
+
+# AI Helpers
 import os
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
