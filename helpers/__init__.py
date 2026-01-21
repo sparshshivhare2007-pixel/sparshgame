@@ -3,11 +3,13 @@ from database.users import (
     users,
     user_db,
     users_db,
+    add_message_count,
     add_group_id,
     is_group_open,
     set_group_open
 )
 
+# Backward compatibility
 set_group_status = set_group_open
 
 import os
