@@ -1,3 +1,5 @@
+# helpers/utils.py
+
 import random
 import re
 from datetime import timedelta
@@ -16,32 +18,44 @@ FONT_MAP = {
     'y': '𝒚', 'z': '𝒛'
 }
 
+# ---------------- RANDOM PERCENTAGE ----------------
 def random_percentage():
     """Returns a random love/crush percentage (1–100)."""
     return random.randint(1, 100)
 
+# ---------------- TIME FORMATTER ----------------
 def format_delta(delta: timedelta):
-    """Fixes ImportError in daily.py"""
+    """Formats timedelta → 2h 5m 10s (daily.py fix)"""
     seconds = int(delta.total_seconds())
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
+
     parts = []
-    if hours > 0: parts.append(f"{hours}h")
-    if minutes > 0: parts.append(f"{minutes}m")
-    if seconds > 0 or not parts: parts.append(f"{seconds}s")
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds}s")
+
     return " ".join(parts)
 
+# ---------------- TEXT STYLIZER ----------------
 def stylize_text(text: str) -> str:
-    """Converts normal text to Script / Calligraphic font"""
+    """Converts normal text to Script / Calligraphic font
+    Keeps usernames, links, commands safe
+    """
     def apply_font(t):
         return "".join(FONT_MAP.get(ch, ch) for ch in t)
 
     pattern = r"(@\w+|https?://\S+|`[^`]+`|/[a-zA-Z0-9_]+)"
     parts = re.split(pattern, str(text))
+
     styled = []
     for part in parts:
         if re.match(pattern, part):
             styled.append(part)
         else:
             styled.append(apply_font(part))
+
     return "".join(styled)
