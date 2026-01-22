@@ -1,35 +1,35 @@
+# database/users.py
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# MongoDB Connection
-MONGO_URL = os.getenv("MONGO_URL")
-client = MongoClient(MONGO_URL)
-db = client['myra_bot_db']
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("❌ MONGO_URI not found")
 
-# Collections (Mapping all names used in your 41 commands)
-users_db = db['users']
-user_db = users_db 
-users = users_db
+client = MongoClient(MONGO_URI)
+db = client["economy_bot"]
 
-def get_user(user_id):
-    user = users_db.find_one({"user_id": user_id})
+# ---------------- COLLECTION ----------------
+users = db["users"]
+
+
+# ---------------- USER FUNCTIONS ----------------
+def get_user(user_id: int):
+    user = users.find_one({"user_id": user_id})
+
     if not user:
-        user_data = {
+        user = {
             "user_id": user_id,
-            "balance": 1000,        # Starting balance
+            "balance": 0,
             "bank": 0,
-            "user_level": 1,
-            "xp": 0,
+            "claimed": False,
+            "messages": 0,
             "kills": 0,
-            "killed": False,
-            "items": [],            # Inventory for /buy, /sell, /items
-            "protection_until": None, # For /protect
-            "messages_count": 0,
-            "badge": "🟢 Rookie"
+            "protected": False
         }
-        users_db.insert_one(user_data)
-        return user_data
+        users.insert_one(user)
+
     return user
