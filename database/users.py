@@ -4,28 +4,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database Connection
+# MongoDB Connection
 MONGO_URL = os.getenv("MONGO_URL")
 client = MongoClient(MONGO_URL)
 db = client['myra_bot_db']
 
-# Collections
+# Collections (Mapping all names used in your 41 commands)
 users_db = db['users']
-users = users_db  # Dono names support karne ke liye alias
+user_db = users_db 
+users = users_db
 
 def get_user(user_id):
     user = users_db.find_one({"user_id": user_id})
     if not user:
         user_data = {
             "user_id": user_id,
-            "balance": 1000,       # Joining bonus
+            "balance": 1000,        # Starting balance
             "bank": 0,
             "user_level": 1,
             "xp": 0,
             "kills": 0,
             "killed": False,
-            "items": [],
-            "protection_until": None,
+            "items": [],            # Inventory for /buy, /sell, /items
+            "protection_until": None, # For /protect
             "messages_count": 0,
             "badge": "🟢 Rookie"
         }
