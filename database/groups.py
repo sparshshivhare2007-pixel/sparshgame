@@ -1,16 +1,32 @@
-from database.users import db
+# database/groups.py
+from .users import db
 
-groups_db = db['groups']
+groups = db["groups"]
 
-def is_group_open(chat_id):
-    group = groups_db.find_one({"chat_id": chat_id})
+
+def add_group_id(group_id: int):
+    groups.update_one(
+        {"group_id": group_id},
+        {"$set": {"group_id": group_id, "open": True}},
+        upsert=True
+    )
+
+
+def is_group_open(group_id: int) -> bool:
+    group = groups.find_one({"group_id": group_id})
     if not group:
-        return True  # Default: Economy Open
+        add_group_id(group_id)
+        return True
     return group.get("open", True)
 
-def set_group_status(chat_id, status: bool):
-    groups_db.update_one(
-        {"chat_id": chat_id},
+
+def set_group_open(group_id: int, status: bool):
+    groups.update_one(
+        {"group_id": group_id},
         {"$set": {"open": status}},
         upsert=True
     )
+
+
+# backward compatibility
+set_group_status = set_group_open
