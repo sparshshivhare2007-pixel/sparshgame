@@ -1,6 +1,6 @@
 # database/__init__.py
-
 from .users import get_user
+from .groups import is_group_open, set_group_status
 from .mongo import users, groups, chatbot_collection
 
 # helper wrappers (agar main.py expect karta ho)
