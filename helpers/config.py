@@ -1,13 +1,12 @@
 # helpers/config.py
 
+import os
+
 # ---------------- BOT INFO ----------------
-BOT_NAME = "SparshGameBot"   # 👈 yaha apna bot ka naam daal sakta hai
-BOT_USERNAME = "@sparshgamebot"
+BOT_NAME = os.getenv("BOT_NAME", "Baka")
+OWNER_LINK = os.getenv("OWNER_LINK", "https://t.me/yourusername")
 
-# ---------------- AI CONFIG ----------------
-AI_ENABLED = True
-AI_COOLDOWN = 5            # seconds
-MAX_AI_MESSAGE_LEN = 300
-
-# ---------------- FLAGS ----------------
-LOG_AI_MESSAGES = False
+# ---------------- API KEYS ----------------
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+CODESTRAL_API_KEY = os.getenv("CODESTRAL_API_KEY", "")
