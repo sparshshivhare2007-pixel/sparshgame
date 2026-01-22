@@ -18,15 +18,12 @@ OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID", "0"))
 
 # -------------------- DATABASE --------------------
-# Hum database package se direct import kar rahe hain kyunki __init__.py me sab setup hai
 from database import (
-    get_user,
-    user_db,
-    users_db,        # give.py compatibility ke liye
-    add_group_id,
-    add_message_count,
-    users,           # Broadcast loop ke liye
-    groups_db        # Broadcast loop aur database reference ke liye
+    get_user,           # get user helper
+    add_group_id,       # add group helper
+    add_message_count,  # increment XP/messages
+    users,              # users collection (MongoDB)
+    groups,             # groups collection (MongoDB)
 )
 
 # -------------------- COMMANDS --------------------
@@ -67,7 +64,7 @@ from commands.bank import bank
 from commands.deposit import deposit
 from commands.withdraw import withdraw
 
-# ✅ AI CHAT (FIXED)
+# ✅ AI CHAT
 from commands.chat import ai_message_handler
 
 # =====================================================
@@ -93,7 +90,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             failed += 1
 
     # Groups loop
-    for g in groups_db.find():
+    for g in groups.find():
         try:
             await context.bot.send_message(g["group_id"], text)
             sent += 1
@@ -131,7 +128,7 @@ async def track_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
-    rank_data = list(user_db.find().sort("balance", -1))
+    rank_data = list(users.find().sort("balance", -1))
     ids = [u["user_id"] for u in rank_data]
     rank = ids.index(user_id) + 1 if user_id in ids else "?"
 
@@ -146,7 +143,7 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def work(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = get_user(user_id)
-    user_db.update_one(
+    users.update_one(
         {"user_id": user_id},
         {"$inc": {"balance": 200}}
     )
@@ -188,10 +185,9 @@ def main():
         ("balance", balance), ("work", work), ("economy", economy_guide),
         ("transfer", transfer_balance), ("claim", claim), ("own", own),
         ("crush", crush), ("love", love), ("slap", slap),
-        ("items", items), ("item", item), ("give", give),
-        ("daily", daily), ("rob", rob), ("protect", protect),
-        ("toprich", toprich), ("topkill", topkill),
-        ("kill", kill), ("revive", revive),
+        ("items", items), ("item", item), ("give", give), ("daily", daily),
+        ("rob", rob), ("protect", protect), ("toprich", toprich),
+        ("topkill", topkill), ("kill", kill), ("revive", revive),
         ("open", open_economy), ("close", close_economy)
     ]
     for c, h in economy_cmds:
