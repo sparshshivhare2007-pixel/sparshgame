@@ -1,5 +1,6 @@
 # database/groups.py
-from .users import db
+
+from database.mongo import db
 
 groups_db = db["groups"]
 
