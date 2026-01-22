@@ -7,16 +7,17 @@ load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
-    raise ValueError("❌ MONGO_URI not found")
+    raise ValueError("MONGO_URI missing")
 
 client = MongoClient(MONGO_URI)
 db = client["economy_bot"]
 
-# ---------------- COLLECTION ----------------
+# collections
 users = db["users"]
+users_db = users      # 👈 tumhare import ke liye
+user_db = users       # 👈 backward compatibility
 
 
-# ---------------- USER FUNCTIONS ----------------
 def get_user(user_id: int):
     user = users.find_one({"user_id": user_id})
 
@@ -26,7 +27,8 @@ def get_user(user_id: int):
             "balance": 0,
             "bank": 0,
             "claimed": False,
-            "messages": 0,
+            "messages_count": 0,
+            "xp": 0,
             "kills": 0,
             "protected": False
         }
