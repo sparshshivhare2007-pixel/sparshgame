@@ -13,3 +13,6 @@ from helpers.protection import (
 
 # -------- utils --------
 from helpers.utils import random_percentage
+
+# -------- config --------
+from helpers.config import *
